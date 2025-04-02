@@ -1,0 +1,344 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum Platform {
+  FACEBOOK
+  INSTAGRAM
+  TWITTER
+  LINKEDIN
+  TIKTOK
+  YOUTUBE
+  SNAPCHAT
+  REDDIT
+  DISCORD
+  TELEGRAM
+  WHATSAPP
+  PINTEREST
+  TWITCH
+  MEDIUM
+  WECHAT
+  THREADS
+}
+
+enum ContentType {
+  POST
+  STORY
+  REEL
+  VIDEO
+  ARTICLE
+  PIN
+  TWEET
+  MESSAGE
+  COMMENT
+  LIVE_STREAM
+}
+
+enum UserRole {
+  USER
+  CREATOR
+  ADMIN
+}
+
+// Models
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  password      String
+  name          String
+  bio           String?
+  avatar        String?
+  location      String?
+  website       String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  posts         Post[]
+  comments      Comment[]
+  likes         Like[]
+  followers     Follow[]  @relation("Following")
+  following     Follow[]  @relation("Followers")
+  achievements  UserAchievement[]
+  transactions  Transaction[]
+  settings      UserSettings?
+  notifications Notification[]
+}
+
+model UserSettings {
+  id                String   @id @default(uuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id])
+  emailNotifications Boolean @default(true)
+  pushNotifications  Boolean @default(true)
+  privacy           String   @default("public")
+  language          String   @default("en")
+  timezone          String?
+  theme             String   @default("light")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model Post {
+  id          String    @id @default(uuid())
+  content     String
+  media       String[]
+  visibility  String    @default("public")
+  scheduledFor DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  authorId    String
+  author      User      @relation(fields: [authorId], references: [id])
+  comments    Comment[]
+  likes       Like[]
+  mentions    Mention[]
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id])
+}
+
+model Like {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id])
+
+  @@unique([userId, postId])
+}
+
+model Follow {
+  id          String   @id @default(uuid())
+  followerId  String
+  follower    User     @relation("Following", fields: [followerId], references: [id])
+  followingId String
+  following   User     @relation("Followers", fields: [followingId], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@unique([followerId, followingId])
+}
+
+model Mention {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id])
+}
+
+model Achievement {
+  id          String   @id @default(uuid())
+  name        String
+  description String
+  icon        String
+  points      Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  users       UserAchievement[]
+}
+
+model UserAchievement {
+  id            String      @id @default(uuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id])
+  achievementId String
+  achievement   Achievement @relation(fields: [achievementId], references: [id])
+  earnedAt      DateTime    @default(now())
+
+  @@unique([userId, achievementId])
+}
+
+model Transaction {
+  id          String   @id @default(uuid())
+  type        String   // "deposit", "withdrawal", "transfer", "reward"
+  amount      Float
+  status      String   // "pending", "completed", "failed"
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  type      String
+  data      Json
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model Account {
+  id              String    @id @default(cuid())
+  userId          String
+  platform        Platform
+  platformUserId  String
+  accessToken     String
+  refreshToken    String?
+  tokenExpiresAt  DateTime?
+  platformUsername String?
+  platformAvatar  String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  user            User      @relation(fields: [userId], references: [id])
+
+  @@unique([userId, platform])
+}
+
+model Post {
+  id              String    @id @default(cuid())
+  userId          String
+  platform        Platform
+  platformPostId  String?
+  type            ContentType
+  content         String
+  media           Json[]
+  metadata        Json?
+  isPublished     Boolean   @default(false)
+  isScheduled     Boolean   @default(false)
+  scheduledFor    DateTime?
+  publishedAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  user            User      @relation(fields: [userId], references: [id])
+  comments        Comment[]
+  likes           Like[]
+  shares          Share[]
+  analytics       Analytics[]
+}
+
+model Share {
+  id              String    @id @default(cuid())
+  userId          String
+  postId          String
+  platform        Platform
+  platformShareId String?
+  createdAt       DateTime  @default(now())
+
+  // Relations
+  user            User      @relation(fields: [userId], references: [id])
+  post            Post      @relation(fields: [postId], references: [id])
+}
+
+model Message {
+  id              String    @id @default(cuid())
+  senderId        String
+  receiverId      String
+  platform        Platform
+  platformMessageId String?
+  content         String
+  media           Json[]
+  isRead          Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  sender          User      @relation("SentMessages", fields: [senderId], references: [id])
+  receiver        User      @relation("ReceivedMessages", fields: [receiverId], references: [id])
+}
+
+model Analytics {
+  id              String    @id @default(cuid())
+  postId          String
+  platform        Platform
+  views           Int       @default(0)
+  likes           Int       @default(0)
+  comments        Int       @default(0)
+  shares          Int       @default(0)
+  engagement      Float     @default(0)
+  date            DateTime
+
+  // Relations
+  post            Post      @relation(fields: [postId], references: [id])
+}
+
+model Subscription {
+  id              String    @id @default(cuid())
+  userId          String
+  creatorId       String
+  tier            String
+  amount          Float
+  currency        String
+  status          String
+  startDate       DateTime
+  endDate         DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  user            User      @relation("Subscriber", fields: [userId], references: [id])
+  creator         User      @relation("Creator", fields: [creatorId], references: [id])
+}
+
+model Wallet {
+  id              String    @id @default(cuid())
+  userId          String    @unique
+  address         String    @unique
+  balance         Float     @default(0)
+  currency        String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  user            User      @relation(fields: [userId], references: [id])
+  transactions    Transaction[]
+}
+
+model NFT {
+  id              String    @id @default(cuid())
+  userId          String
+  tokenId         String
+  contractAddress String
+  name            String
+  description     String
+  image           String
+  metadata        Json?
+  createdAt       DateTime  @default(now())
+
+  // Relations
+  user            User      @relation(fields: [userId], references: [id])
+}
+
+model ApiKey {
+  id              String    @id @default(cuid())
+  platform        Platform
+  key             String
+  secret          String
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model RateLimit {
+  id              String    @id @default(cuid())
+  platform        Platform
+  endpoint        String
+  limit           Int
+  remaining       Int
+  resetAt         DateTime
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+} 

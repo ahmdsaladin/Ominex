@@ -1,0 +1,87 @@
+model CrossPlatformPost {
+  id          String   @id @default(cuid())
+  userId      String
+  platform    String
+  postId      String
+  content     String
+  mediaUrls   String[]
+  scheduledAt DateTime?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([platform, postId])
+  @@index([userId])
+  @@index([platform])
+}
+
+model CrossPlatformComment {
+  id            String   @id @default(cuid())
+  userId        String
+  platform      String
+  postId        String
+  commentId     String
+  content       String
+  createdAt     DateTime
+  likesCount    Int?
+  repliesCount  Int?
+  isLiked       Boolean  @default(false)
+  metadata      Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([platform, commentId])
+  @@index([userId])
+  @@index([platform])
+  @@index([postId])
+}
+
+model CrossPlatformReaction {
+  id         String   @id @default(cuid())
+  userId     String
+  platform   String
+  postId     String
+  likesCount Int?
+  isLiked    Boolean  @default(false)
+  metadata   Json?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([platform, postId])
+  @@index([userId])
+  @@index([platform])
+  @@index([postId])
+}
+
+model ScheduledPost {
+  id          String   @id @default(cuid())
+  userId      String
+  content     String
+  mediaUrls   String[]
+  platforms   String[]
+  scheduledAt DateTime
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([scheduledAt])
+}
+
+model CrossPlatformSync {
+  id            String   @id @default(cuid())
+  userId        String
+  platform      String
+  postId        String
+  lastSyncedAt  DateTime
+  syncStatus    String
+  errorMessage  String?
+  metadata      Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([platform, postId])
+  @@index([userId])
+  @@index([platform])
+  @@index([postId])
+} 

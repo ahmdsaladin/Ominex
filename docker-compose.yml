@@ -1,0 +1,211 @@
+version: '3.8'
+
+services:
+  auth-service:
+    build:
+      context: ./services/auth
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:postgres@auth-db:5432/auth
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=${JWT_SECRET}
+    depends_on:
+      - auth-db
+      - redis
+    networks:
+      - ominex-network
+
+  user-service:
+    build:
+      context: ./services/user
+      dockerfile: Dockerfile
+    ports:
+      - "3002:3000"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:postgres@user-db:5432/users
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - user-db
+      - redis
+    networks:
+      - ominex-network
+
+  post-service:
+    build:
+      context: ./services/post
+      dockerfile: Dockerfile
+    ports:
+      - "3003:3000"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:postgres@post-db:5432/posts
+      - REDIS_URL=redis://redis:6379
+      - S3_BUCKET=${S3_BUCKET}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+    depends_on:
+      - post-db
+      - redis
+    networks:
+      - ominex-network
+
+  notification-service:
+    build:
+      context: ./services/notification
+      dockerfile: Dockerfile
+    ports:
+      - "3004:3000"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:postgres@notification-db:5432/notifications
+      - REDIS_URL=redis://redis:6379
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+    depends_on:
+      - notification-db
+      - redis
+    networks:
+      - ominex-network
+
+  ai-service:
+    build:
+      context: ./services/ai
+      dockerfile: Dockerfile
+    ports:
+      - "3005:3000"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:postgres@ai-db:5432/ai
+      - REDIS_URL=redis://redis:6379
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    depends_on:
+      - ai-db
+      - redis
+    networks:
+      - ominex-network
+
+  api-gateway:
+    build:
+      context: ./services/gateway
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - auth-service
+      - user-service
+      - post-service
+      - notification-service
+      - ai-service
+      - redis
+    networks:
+      - ominex-network
+
+  auth-db:
+    image: postgres:14-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=auth
+    volumes:
+      - auth-data:/var/lib/postgresql/data
+    networks:
+      - ominex-network
+
+  user-db:
+    image: postgres:14-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=users
+    volumes:
+      - user-data:/var/lib/postgresql/data
+    networks:
+      - ominex-network
+
+  post-db:
+    image: postgres:14-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=posts
+    volumes:
+      - post-data:/var/lib/postgresql/data
+    networks:
+      - ominex-network
+
+  notification-db:
+    image: postgres:14-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=notifications
+    volumes:
+      - notification-data:/var/lib/postgresql/data
+    networks:
+      - ominex-network
+
+  ai-db:
+    image: postgres:14-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=ai
+    volumes:
+      - ai-data:/var/lib/postgresql/data
+    networks:
+      - ominex-network
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - ominex-network
+
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus:/etc/prometheus
+      - prometheus-data:/prometheus
+    networks:
+      - ominex-network
+
+  grafana:
+    image: grafana/grafana:10.0.0
+    ports:
+      - "3006:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+    volumes:
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - ominex-network
+
+networks:
+  ominex-network:
+    driver: bridge
+
+volumes:
+  auth-data:
+  user-data:
+  post-data:
+  notification-data:
+  ai-data:
+  redis-data:
+  prometheus-data:
+  grafana-data: 

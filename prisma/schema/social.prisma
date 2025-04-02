@@ -1,0 +1,136 @@
+model SocialConfig {
+  id          String   @id @default(cuid())
+  platform    String   @unique
+  clientId    String
+  clientSecret String
+  redirectUri String
+  scopes      String[]
+  apiVersion  String?
+  timeout     Int?
+  retries     Int?
+  rateLimit   Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model SocialAuth {
+  id            String   @id @default(cuid())
+  platform      String
+  userId        String
+  accessToken   String
+  refreshToken  String?
+  tokenExpiresAt DateTime?
+  scope         String[]
+  metadata      Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([platform, userId])
+  @@index([platform])
+  @@index([userId])
+}
+
+model SocialProfile {
+  id             String   @id @default(cuid())
+  platform       String
+  userId         String
+  username       String
+  displayName    String?
+  profileUrl     String?
+  avatarUrl      String?
+  bio            String?
+  followersCount Int?
+  followingCount Int?
+  postsCount     Int?
+  isVerified     Boolean  @default(false)
+  metadata       Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([platform, userId])
+  @@index([platform])
+  @@index([userId])
+}
+
+model SocialPost {
+  id            String   @id @default(cuid())
+  platform      String
+  postId        String
+  userId        String
+  content       String
+  mediaUrls     String[]
+  createdAt     DateTime
+  updatedAt     DateTime?
+  likesCount    Int?
+  commentsCount Int?
+  sharesCount   Int?
+  viewsCount    Int?
+  isLiked       Boolean  @default(false)
+  isReposted    Boolean  @default(false)
+  isBookmarked  Boolean  @default(false)
+  metadata      Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([platform, postId])
+  @@index([platform])
+  @@index([userId])
+}
+
+model SocialComment {
+  id           String   @id @default(cuid())
+  platform     String
+  commentId    String
+  postId       String
+  userId       String
+  content      String
+  createdAt    DateTime
+  likesCount   Int?
+  repliesCount Int?
+  isLiked      Boolean  @default(false)
+  metadata     Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([platform, commentId])
+  @@index([platform])
+  @@index([postId])
+  @@index([userId])
+}
+
+model SocialStats {
+  id              String   @id @default(cuid())
+  platform        String
+  userId          String
+  followersCount  Int
+  followingCount  Int
+  postsCount      Int
+  engagementRate  Float
+  averageLikes    Float
+  averageComments Float
+  averageShares   Float
+  topHashtags     String[]
+  topTopics       String[]
+  lastUpdated     DateTime
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([platform, userId])
+  @@index([platform])
+  @@index([userId])
+}
+
+model SocialInteraction {
+  id            String   @id @default(cuid())
+  platform      String
+  userId        String
+  targetId      String
+  targetType    String
+  type          String
+  metadata      Json?
+  createdAt     DateTime @default(now())
+
+  @@index([platform])
+  @@index([userId])
+  @@index([targetId])
+} 
